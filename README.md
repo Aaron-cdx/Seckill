@@ -1,14 +1,14 @@
 # Seckill
-利用Mybatis、Spring、SpringMVC编写的一个小的秒杀API程序
+##利用Mybatis、Spring、SpringMVC编写的一个小的秒杀API程序
 
 创建Maven项目-->war
 
-主要分为三个阶段：
+#主要分为三个阶段：
 Mybatis：dao层开发
 Spring：service开发
 SpringMVC：Web层开fa
 
-第一步：数据库的设计
+#第一步：数据库的设计
 主要有一个秒杀商品表和一个秒杀成功明细表
 create table seckill(
 `seckill_id` bigint not null auto_increment comment '商品库存',
@@ -43,11 +43,11 @@ primary key(seckill_id,user_phone),
 key idx_create_time(`create_time`)
 )ENGINE=INNODB default charset=utf8 comment '秒杀成功明细表';
 
-第二步针对表创建响应的实体属性：entity包
+##第二步针对表创建响应的实体属性：entity包
 
-第三部开始Mybatis的Dao层的设计
+##第三部开始Mybatis的Dao层的设计
 
-主要涉及到的是初始接口的设计，接口的设计需要站在用户的角度考虑
+##主要涉及到的是初始接口的设计，接口的设计需要站在用户的角度考虑
 对于秒杀的商品表，需要完成的主要的三个功能是：
 1：商品库存的数量变化（减库存）int reduceNumber
 2：根据响应的产品id找到商品信息（针对单个商品）Seckill queryById
@@ -64,7 +64,7 @@ key idx_create_time(`create_time`)
 
 在mybatis-config.xml中配置mybatis的全局属性，以便实现响应属性的自动注入
 
-第二部分是关于service的设计
+#第二部分是关于service的设计
 service中的也是接口，接口的设计需要站在使用者的角度来设计
 
 这里使用了一个dto，数据传输包的概念，就是在service和web之间多构建了一个包装类，dto可以对数据进行二次封装（根据不同的构造方法来）,获取到想要的数据。
@@ -80,12 +80,16 @@ SeckillServiceImpl的设计，实现SeckillService接口，实现其中的方法
 -- 自动注入SecKillDao和SuccessKilledDao对象
 
 重点介绍暴露用户秒杀地址和执行秒杀过程的实现
-public Exposer exportSeckillUrl(long seckillId) {
+
+public Exposer exportSeckillUrl(long seckillId) {<br>
+
 		//首先获得这个对象
 		Seckill seckill = seckillDao.queryById(seckillId);
+		
 		if(seckill == null) {
 			return new Exposer(false,seckillId);
 		}
+		
 		Date startTime = seckill.getStartTime();
 		
 		Date endTime = seckill.getEndTime();
@@ -101,7 +105,8 @@ public Exposer exportSeckillUrl(long seckillId) {
 代码如上：
 具体功能描述：根据id查询到商品对象，判断对象是否存在，不存在的话直接利用封装的数据类返回失败的数据。存在的话获取商品开始秒杀的时间，结束时间，以及系统当前的时间，对时间做一个逻辑的判断，看系统时间是否满足暴露接口的条件，满足的话，获取md5值，返回成功的用户秒杀地址。
 
-private String getMd5(long seckillId) {
+private String getMd5(long seckillId) {<br>
+
 		String base = seckillId + "/" + slat;
 		String md5 = DigestUtils.md5DigestAsHex(base.getBytes());
 		return md5;
@@ -109,7 +114,8 @@ private String getMd5(long seckillId) {
 md5值的产生用了一个私有的方法：getMD5()，利用商品的id掺杂盐值slat，然后通过一个工具类生成md5码，MD5码具有不可还原性。
 
 执行秒杀的实现：
-public ExecutionSeckill executeSeckill(long seckillId, long userPhone, String md5)
+public ExecutionSeckill executeSeckill(long seckillId, long userPhone, String md5)<br>
+
 			throws SeckillException, RepeatException, SeckillEndException {
 		try {
 			//首先判断md5值是否相同
@@ -163,7 +169,8 @@ web层的设计具体的url使用的是Restful风格的设计，/模块/资源/{
 这里还有一个就是javascript的模块化：
 //代码封装
 //javascript模块化
-var seckill={
+var seckill={<br>
+
 	//封装秒杀的ajax相关的url地址
 	URL : {
 		now : '/seckill/seckill/time/now',
@@ -228,7 +235,8 @@ var seckill={
 		if(nowTime > endTime){
 			seckillBox.html('秒杀结束！');
 		} else if(nowTime < startTime){
-//			seckillBox.html('秒杀未开始！');
+//			seckillBox.html('秒杀未开始！');<br>
+
 			//启动倒计时 计时事件绑定
 			var killTime = new Date(startTime+1000);
 			seckillBox.countdown(killTime,function(event){
@@ -296,7 +304,8 @@ var seckill={
 	}
 };
 
- $(function(){
+ $(function(){<br>
+ 
 	//使用EL表达式传递参数
 		seckill.detail.init({
 			seckillId : ${seckill.seckillId},
@@ -306,18 +315,20 @@ var seckill={
  });
  
  这里的主要逻辑：
- 秒杀的逻辑：
- 首先是对于详情页的封装：
+ #秒杀的逻辑：
+ ##首先是对于详情页的封装：
  
-详情页中的要的数据在detail.jsp使用EL表达式就可以在Controller中传过来的model中取到，可以通过上面的代码传入具体的参数；
+##详情页中的要的数据在detail.jsp使用EL表达式就可以在Controller中传过来的model中取到，可以通过上面的代码传入具体的参数；
 具体流程：从cookie中取得手机号，验证手机号，如果手机号验证不通过（就是不满足验证的条件），弹出一个框提醒用户输入手机号进行注册绑定，当用户输入之后点击提交按钮的时候，继续做一次手机号的验证，如果手机号验证通过则将数据写入浏览器的cookie中，并刷新当前的页面，如果验证不通过则显示手机号错误的信息提醒用户再次输入手机号，直到成功。
  
-用户手机号验证成功之后可以到达商品秒杀界面，此时需要根据当前时间和是商品秒杀开始和结束时间作对比，以此来执行不同的操作，若当前时间大于结束时间，提醒用户秒杀结束，如果当前时间小于开始时间，则使用倒计时插件执行倒计时，告知用户需要等待多久才可以秒杀。当前时间处于开始结束之间，直接开启秒杀。倒计时的话，直接使用倒计时插件，设置指定的输出格式即可。倒计时结束需要设置完成倒计时之后开启秒杀。
+##用户手机号验证成功之后可以到达商品秒杀界面，此时需要根据当前时间和是商品秒杀开始和结束时间作对比，以此来执行不同的操作，若当前时间大于结束时间，提醒用户秒杀结束，如果当前时间小于开始时间，则使用倒计时插件执行倒计时，告知用户需要等待多久才可以秒杀。当前时间处于开始结束之间，直接开启秒杀。倒计时的话，直接使用倒计时插件，设置指定的输出格式即可。倒计时结束需要设置完成倒计时之后开启秒杀。
 
-秒杀业务：首先需要获取暴露的接口地址，从得到的数据判断是否接口暴露，暴露的话继续判断秒杀状态，否则直接输出错误的信息。判断秒杀状态，判断是否开启秒杀，开启秒杀则获取md5值，开始执行秒杀，否则获取当前时间，开始时间，结束时间，继续倒计时。开始秒杀点击之后获取执行秒杀需要的数据传入，得到秒杀的状态以及明细，最后显示秒杀结果。
+##秒杀业务：首先需要获取暴露的接口地址，从得到的数据判断是否接口暴露，暴露的话继续判断秒杀状态，否则直接输出错误的信息。判断秒杀状态，判断是否开启秒杀，开启秒杀则获取md5值，开始执行秒杀，否则获取当前时间，开始时间，结束时间，继续倒计时。开始秒杀点击之后获取执行秒杀需要的数据传入，得到秒杀的状态以及明细，最后显示秒杀结果。
 
-Spring-dao.xml配置文件
+Spring-dao.xml配置文件<br>
+
 <!-- 资源文件放置的位置 -->
+
         <context:property-placeholder location="classpath:db.properties"/>
         <!-- 配置数据库连接池 -->
         <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
@@ -359,8 +370,9 @@ Spring-dao.xml配置文件
         	<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
         </bean>
 
-spring-service.xml配置文件：
+spring-service.xml配置文件：<br>
         <!-- 注解扫描 service包下的文件 -->
+	
         <context:component-scan base-package="org.seckill.service"></context:component-scan>
         <!-- 配置声明式事务 -->
         <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
@@ -375,6 +387,7 @@ spring-web.xml配置文件：
         <!-- 注解扫描激活 
         	整合的步骤 mybatis->spring->springMVC
         -->
+	
        	<mvc:annotation-driven></mvc:annotation-driven>
         <!-- 静态资源的路径访问设置使用‘/’ -->
         <mvc:default-servlet-handler/>
