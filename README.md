@@ -10,7 +10,8 @@ SpringMVC：Web层开fa
 
 #第一步：数据库的设计
 主要有一个秒杀商品表和一个秒杀成功明细表
-create table seckill(
+
+```create table seckill(
 `seckill_id` bigint not null auto_increment comment '商品库存',
 `name` varchar(20) not null comment '商品名称',
 `number` int not null comment '库存数量',
@@ -42,7 +43,7 @@ create table success_killed(
 primary key(seckill_id,user_phone),
 key idx_create_time(`create_time`)
 )ENGINE=INNODB default charset=utf8 comment '秒杀成功明细表';
-
+```
 ##第二步针对表创建响应的实体属性：entity包
 
 ##第三部开始Mybatis的Dao层的设计
@@ -80,9 +81,8 @@ SeckillServiceImpl的设计，实现SeckillService接口，实现其中的方法
 -- 自动注入SecKillDao和SuccessKilledDao对象
 
 重点介绍暴露用户秒杀地址和执行秒杀过程的实现
-
+```
 public Exposer exportSeckillUrl(long seckillId) {<br>
-
 		//首先获得这个对象
 		Seckill seckill = seckillDao.queryById(seckillId);
 		
@@ -102,20 +102,22 @@ public Exposer exportSeckillUrl(long seckillId) {<br>
 		String md5 = getMd5(seckillId);
 		return new Exposer(true, md5, seckillId);
 	}
+```
 代码如上：
 具体功能描述：根据id查询到商品对象，判断对象是否存在，不存在的话直接利用封装的数据类返回失败的数据。存在的话获取商品开始秒杀的时间，结束时间，以及系统当前的时间，对时间做一个逻辑的判断，看系统时间是否满足暴露接口的条件，满足的话，获取md5值，返回成功的用户秒杀地址。
-
+```
 private String getMd5(long seckillId) {<br>
 
 		String base = seckillId + "/" + slat;
 		String md5 = DigestUtils.md5DigestAsHex(base.getBytes());
 		return md5;
 	}
+```
 md5值的产生用了一个私有的方法：getMD5()，利用商品的id掺杂盐值slat，然后通过一个工具类生成md5码，MD5码具有不可还原性。
 
 执行秒杀的实现：
+```
 public ExecutionSeckill executeSeckill(long seckillId, long userPhone, String md5)<br>
-
 			throws SeckillException, RepeatException, SeckillEndException {
 		try {
 			//首先判断md5值是否相同
@@ -151,6 +153,7 @@ public ExecutionSeckill executeSeckill(long seckillId, long userPhone, String md
 			throw new SeckillEndException("系统异常："+e.getMessage());
 		}
 	}
+```
 代码如上：
  首先判断md5的值是否相同，防止用户通过第三方插件伪造秒杀地址执行秒杀。执行秒杀，获取系统当前时间，执行商品减库存的操作，判断减库存执行后的状态，根据更新的成功或者失败做进一步的处理，成功则插入明细，不成功直接抛出之前定义的异常，告知系统不能更新的原因。成功的话下一步：插入到秒杀成功明细表当中，判断插入的状态，根据插入的返回的int状态码，判断成功或者失败，失败的或返回秒杀重复给系统，成功的话一个流程就走完了，秒杀结束。
  
@@ -167,10 +170,10 @@ web层的设计具体的url使用的是Restful风格的设计，/模块/资源/{
 资源的占位，比如/seckill/{seckillId}/{md5}/execution，中使用了两个占位，当设计执行方法的时候，需要使用@PathVariable()的方式指定这个参数是多少，否则会发生参数未定义的情况。
 
 这里还有一个就是javascript的模块化：
+```
 //代码封装
 //javascript模块化
 var seckill={<br>
-
 	//封装秒杀的ajax相关的url地址
 	URL : {
 		now : '/seckill/seckill/time/now',
@@ -303,7 +306,8 @@ var seckill={<br>
 		}
 	}
 };
-
+```
+```
  $(function(){<br>
  
 	//使用EL表达式传递参数
@@ -313,7 +317,7 @@ var seckill={<br>
 			endTime : ${seckill.endTime.time}
 		});
  });
- 
+ ```
  这里的主要逻辑：
  #秒杀的逻辑：
  ##首先是对于详情页的封装：
@@ -326,9 +330,8 @@ var seckill={<br>
 ##秒杀业务：首先需要获取暴露的接口地址，从得到的数据判断是否接口暴露，暴露的话继续判断秒杀状态，否则直接输出错误的信息。判断秒杀状态，判断是否开启秒杀，开启秒杀则获取md5值，开始执行秒杀，否则获取当前时间，开始时间，结束时间，继续倒计时。开始秒杀点击之后获取执行秒杀需要的数据传入，得到秒杀的状态以及明细，最后显示秒杀结果。
 
 Spring-dao.xml配置文件<br>
-
+```
 <!-- 资源文件放置的位置 -->
-
         <context:property-placeholder location="classpath:db.properties"/>
         <!-- 配置数据库连接池 -->
         <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
@@ -361,7 +364,6 @@ Spring-dao.xml配置文件<br>
         	<!-- 配置扫描存在的mapper需要的文件 -->
         	<property name="mapperLocations" value="classpath:mapper/*.xml"></property>
         </bean>
-        
         <!-- 配置扫描Dao的接口包，动态实现Dao接口，注入到Spring容器中 -->
         <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
         	<!-- 扫描Dao，实现自动注入 -->
@@ -369,10 +371,10 @@ Spring-dao.xml配置文件<br>
         	<!-- 实现注入sqlSessionFactory-->
         	<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
         </bean>
-
-spring-service.xml配置文件：<br>
+```
+spring-service.xml配置文件：
+```
         <!-- 注解扫描 service包下的文件 -->
-	
         <context:component-scan base-package="org.seckill.service"></context:component-scan>
         <!-- 配置声明式事务 -->
         <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
@@ -382,12 +384,12 @@ spring-service.xml配置文件：<br>
         
         <!-- 声明式事务注解驱动 -->
         <tx:annotation-driven transaction-manager="transactionManager"/>
-
+```
+```
 spring-web.xml配置文件：
         <!-- 注解扫描激活 
         	整合的步骤 mybatis->spring->springMVC
         -->
-	
        	<mvc:annotation-driven></mvc:annotation-driven>
         <!-- 静态资源的路径访问设置使用‘/’ -->
         <mvc:default-servlet-handler/>
@@ -399,3 +401,4 @@ spring-web.xml配置文件：
         </bean>
         <!-- 包扫描 -->
         <context:component-scan base-package="org.seckill.web"></context:component-scan>
+```
